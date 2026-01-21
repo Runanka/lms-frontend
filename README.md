@@ -1,36 +1,149 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Skillwise LMS Frontend
+
+A modern Learning Management System frontend built with Next.js 15, featuring a clean UI inspired by contemporary design patterns.
+
+## Features
+
+### For Students
+- **Browse Courses** - Discover and enroll in courses
+- **Learning Paths** - Follow structured multi-course journeys
+- **Progress Tracking** - Track completion across courses and paths
+- **Interactive Learning** - Watch videos, read documents, complete assignments
+- **Course Discussion** - Chat with other learners per course
+- **MCQ & Subjective Assignments** - Complete quizzes and written assignments
+
+### For Coaches
+- **Course Creation** - Build courses with modules, resources, and assignments
+- **Path Creation** - Curate collections of your courses into learning paths
+- **Assignment Management** - Create MCQ and subjective assignments
+- **Submission Review** - Grade student submissions
+
+## Tech Stack
+
+- **Framework**: Next.js 15 (App Router)
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS 4
+- **UI Components**: shadcn/ui
+- **State Management**: Zustand (with persistence)
+- **Authentication**: Zitadel (OAuth2/OIDC with PKCE)
+- **Icons**: Lucide React
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- Node.js 18+
+- Backend API running (see [lms backend](../lms))
+- Zitadel instance configured
+
+### Environment Variables
+
+Create a `.env.local` file in the project root:
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:3008/api
+NEXT_PUBLIC_ZITADEL_AUTHORITY=http://localhost:8080
+NEXT_PUBLIC_ZITADEL_CLIENT_ID=your_client_id
+NEXT_PUBLIC_APP_URL=http://localhost:5173
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Installation
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+# Install dependencies
+npm install
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+# Run development server
+npm run dev
+```
 
-## Learn More
+Open [http://localhost:5173](http://localhost:5173) in your browser.
 
-To learn more about Next.js, take a look at the following resources:
+### Build for Production
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npm run build
+npm start
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Project Structure
 
-## Deploy on Vercel
+```
+lms-frontend/
+├── app/
+│   ├── (auth)/              # Auth routes (callback, role selection)
+│   │   ├── callback/        # OAuth callback handler
+│   │   └── select-role/     # Post-auth role selection
+│   ├── (dashboard)/         # Protected routes
+│   │   ├── courses/         # Course listing & details
+│   │   ├── paths/           # Learning path listing & details
+│   │   ├── my-courses/      # Student's enrolled courses
+│   │   ├── my-paths/        # Student's started paths
+│   │   ├── learn/[id]/      # Course learning interface
+│   │   ├── create-course/   # Course creation (coaches)
+│   │   ├── create-path/     # Path creation (coaches)
+│   │   └── submissions/     # Submission review (coaches)
+│   ├── layout.tsx           # Root layout
+│   └── page.tsx             # Landing page
+├── components/
+│   ├── ui/                  # shadcn/ui components
+│   └── Comments.tsx         # Course discussion component
+├── lib/
+│   ├── api.ts               # API client functions
+│   ├── auth.ts              # Auth utilities (PKCE, token exchange)
+│   ├── auth-store.ts        # Zustand auth store
+│   └── utils.ts             # Utility functions
+├── types/
+│   └── index.ts             # TypeScript interfaces
+└── public/                  # Static assets
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Authentication Flow
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. User clicks **Sign In** or **Sign Up** on landing page
+2. Redirected to Zitadel with PKCE challenge
+3. After authentication, redirected to `/callback`
+4. Token exchanged, user fetched from backend
+5. If no role set → redirected to `/select-role`
+6. After role selection → redirected to `/courses`
+
+## Key Pages
+
+| Route | Description | Access |
+|-------|-------------|--------|
+| `/` | Landing page | Public |
+| `/courses` | Browse/manage courses | Authenticated |
+| `/courses/[id]` | Course details | Authenticated |
+| `/courses/[id]/edit` | Edit course | Coach (owner) |
+| `/paths` | Browse/manage paths | Authenticated |
+| `/paths/[id]` | Path details | Authenticated |
+| `/my-courses` | Enrolled courses | Student |
+| `/my-paths` | Started paths | Student |
+| `/learn/[id]` | Learning interface | Student (enrolled) |
+| `/create-course` | Create new course | Coach |
+| `/create-path` | Create new path | Coach |
+| `/submissions/[id]` | Review submissions | Coach |
+
+## Design System
+
+The UI follows a consistent design language:
+
+- **Primary Color**: Violet (`violet-600`)
+- **Secondary Color**: Indigo (for paths)
+- **Cards**: White with subtle borders, hover shadows
+- **Typography**: Clean, modern sans-serif
+- **Animations**: Subtle transitions, skeleton loading states
+
+## Scripts
+
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start development server on port 5173 |
+| `npm run build` | Build for production |
+| `npm start` | Start production server |
+| `npm run lint` | Run ESLint |
+
+## Related
+
+- [LMS Backend](../lms) - Express.js API with MongoDB
+- [OpenAPI Spec](../lms/api/openapi.yaml) - API documentation
