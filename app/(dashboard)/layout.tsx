@@ -29,17 +29,17 @@ export default function DashboardLayout({
 
   const navItems = isCoach
     ? [
-        { href: '/courses', label: 'My Courses' },
-        { href: '/paths', label: 'My Paths' },
-        { href: '/create-course', label: 'Create Course' },
-        { href: '/create-path', label: 'Create Path' },
-      ]
-    : [
-        { href: '/courses', label: 'Browse Courses' },
-        { href: '/paths', label: 'Browse Paths' },
-        { href: '/my-courses', label: 'My Learning' },
-        { href: '/my-paths', label: 'My Paths' },
-      ];
+      { href: '/courses', label: 'My Courses' },
+      { href: '/paths', label: 'My Paths' },
+      { href: '/create-course', label: 'Create Course' },
+      { href: '/create-path', label: 'Create Path' },
+    ]
+  : [
+      { href: '/courses', label: 'Browse Courses' },
+      { href: '/paths', label: 'Browse Paths' },
+      { href: '/my-courses', label: 'My Learning' },
+      { href: '/my-paths', label: 'My Paths' },
+    ];
 
   const handleLogout = () => {
     useAuthStore.getState().logout();

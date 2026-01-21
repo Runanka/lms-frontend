@@ -52,3 +52,24 @@ export interface Progress {
   completedDocuments: string[];
   progress: number;
 }
+
+export interface Assignment {
+  _id: string;
+  title: string;
+  type: 'mcq' | 'subjective';
+  courseId: string;
+  mcqQuestions?: MCQQuestion[];
+  subjectiveQuestions?: SubjectiveQuestion[];
+}
+
+export interface MCQQuestion {
+  _id: string;
+  questionText: string;
+  options: { text: string; isCorrect?: boolean }[];
+}
+
+export interface SubjectiveQuestion {
+  _id: string;
+  questionText: string;
+  maxWords?: number;
+}

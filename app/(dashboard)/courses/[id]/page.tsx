@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { coursesApi, progressApi } from '@/lib/api';
 import { useAuthStore } from '@/lib/auth-store';
 import type { Course } from '@/types';
+import Link from 'next/link';
 
 export default function CourseDetailPage() {
   const params = useParams();
@@ -94,9 +95,17 @@ export default function CourseDetailPage() {
           )}
           
           {isEnrolled && (
+            <>
             <span className="px-4 py-2 bg-green-100 text-green-800 rounded-lg">
               ✓ Enrolled
             </span>
+            <Link
+              href={`/learn/${courseId}`}
+              className="px-6 py-2 bg-black text-white rounded-lg hover:bg-gray-800 disabled:opacity-50"
+            >
+              Continue Learning
+            </Link>
+            </>
           )}
           
           {isOwner && (

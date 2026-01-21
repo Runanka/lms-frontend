@@ -1,4 +1,4 @@
-import type { Course, Path, Progress, User } from '@/types';
+import type { Course, Path, Progress, User, Assignment } from '@/types';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3008/api';
 
@@ -56,13 +56,28 @@ export const pathsApi = {
   progress: (id: string, token: string) => api<any>(`/paths/${id}/progress`, { token }),
 };
 
+export const assignmentsApi = {
+  get: (id: string, token: string) =>
+    api<{ assignment: Assignment }>(`/assignments/${id}`, { token }),
+};
+
 export const progressApi = {
   enroll: (courseId: string, token: string) => 
     api<{ progressId: string }>('/progress/enroll', { method: 'POST', body: { courseId }, token }),
   myCourses: (token: string) => api<{ courses: any[] }>('/progress/my-courses', { token }),
-  get: (courseId: string, token: string) => api<{ progress: Progress }>(`/progress/${courseId}`, { token }),
+    get: (courseId: string, token: string) => api<{ progress: Progress }>(`/progress/${courseId}`, { token }),
   completeResource: (data: { courseId: string; resourceId: string; resourceType: 'video' | 'document' }, token: string) =>
     api<{ message: string }>('/progress/complete-resource', { method: 'POST', body: data, token }),
+    submitMcq: (data: { courseId: string; assignmentId: string; answers: number[] }, token: string) =>
+    api<{ score: number; correctCount: number; totalQuestions: number }>(
+      '/progress/submit-mcq',
+      { method: 'POST', body: data, token }
+    ),
+  submitSubjective: (data: { courseId: string; assignmentId: string; answers: string[] }, token: string) =>
+    api<{ message: string }>(
+      '/progress/submit-subjective',
+      { method: 'POST', body: data, token }
+    ),
 };
 
 export const usersApi = {
