@@ -33,7 +33,7 @@ A modern Learning Management System frontend built with Next.js 15, featuring a 
 ### Prerequisites
 
 - Node.js 18+
-- Backend API running (see [lms backend](../lms))
+- Backend API running (see [lms backend](https://github.com/Runanka/lms-backend))
 - Zitadel instance configured
 
 ### Environment Variables
@@ -142,8 +142,3 @@ The UI follows a consistent design language:
 | `npm run build` | Build for production |
 | `npm start` | Start production server |
 | `npm run lint` | Run ESLint |
-
-## Related
-
-- [LMS Backend](../lms) - Express.js API with MongoDB
-- [OpenAPI Spec](../lms/api/openapi.yaml) - API documentation
