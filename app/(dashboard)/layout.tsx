@@ -31,10 +31,10 @@ export default function DashboardLayout({
     ? [
       { href: '/courses', label: 'My Courses' },
       { href: '/paths', label: 'My Paths' },
-      { href: '/create-course', label: 'Create Course' },
-      { href: '/create-path', label: 'Create Path' },
+      { href: '/create-course', label: '+ Course' },
+      { href: '/create-path', label: '+ Path' },
     ]
-  : [
+    : [
       { href: '/courses', label: 'Browse Courses' },
       { href: '/paths', label: 'Browse Paths' },
       { href: '/my-courses', label: 'My Learning' },
@@ -60,18 +60,17 @@ export default function DashboardLayout({
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`px-3 py-2 rounded-lg text-sm ${
-                    pathname === item.href
+                  className={`px-3 py-2 rounded-lg text-sm ${pathname === item.href
                       ? 'bg-gray-100 font-medium'
                       : 'text-gray-600 hover:text-black'
-                  }`}
+                    }`}
                 >
                   {item.label}
                 </Link>
               ))}
             </nav>
           </div>
-          
+
           <div className="flex items-center gap-4">
             <span className="text-sm text-gray-600">
               {user.name || user.email} ({user.role})

@@ -1,4 +1,4 @@
-import type { Course, Path, Progress, User, Assignment } from '@/types';
+import type { Course, Path, Progress, User, Assignment, Comment } from '@/types';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3008/api';
 
@@ -89,4 +89,16 @@ export const usersApi = {
     }),
   me: (token: string) =>
     api<{ user: User }>('/users/me', { token }),
+};
+
+export const commentsApi = {
+  list: (courseId: string, token?: string, limit = 50) =>
+    api<{ comments: Comment[] }>(`/courses/${courseId}/comments?limit=${limit}`, { token }),
+  
+  create: (courseId: string, content: string, token: string) =>
+    api<{ comment: Comment }>(`/courses/${courseId}/comments`, {
+      method: 'POST',
+      body: { content },
+      token,
+    }),
 };

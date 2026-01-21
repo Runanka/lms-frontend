@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { coursesApi, progressApi } from '@/lib/api';
 import { useAuthStore } from '@/lib/auth-store';
+import Comments from '@/components/Comments';
 import type { Course } from '@/types';
 import Link from 'next/link';
 
@@ -11,12 +12,12 @@ export default function CourseDetailPage() {
   const params = useParams();
   const router = useRouter();
   const courseId = params.id as string;
-  
+
   const [course, setCourse] = useState<Course | null>(null);
   const [loading, setLoading] = useState(true);
   const [enrolling, setEnrolling] = useState(false);
   const [isEnrolled, setIsEnrolled] = useState(false);
-  
+
   const { accessToken, user } = useAuthStore();
   const isCoach = user?.role === 'coach';
   const isOwner = course?.coachId === user?.id;
@@ -26,7 +27,7 @@ export default function CourseDetailPage() {
       try {
         const data = await coursesApi.get(courseId, accessToken || undefined);
         setCourse(data.course);
-        
+
         // Check if student is enrolled
         if (user?.role === 'student' && accessToken) {
           try {
@@ -48,7 +49,7 @@ export default function CourseDetailPage() {
 
   const handleEnroll = async () => {
     if (!accessToken) return;
-    
+
     setEnrolling(true);
     try {
       await progressApi.enroll(courseId, accessToken);
@@ -81,7 +82,7 @@ export default function CourseDetailPage() {
         )}
         <h1 className="text-3xl font-bold">{course.title}</h1>
         <p className="text-gray-600 mt-2">{course.description}</p>
-        
+
         {/* Actions */}
         <div className="mt-4 flex gap-4">
           {user?.role === 'student' && !isEnrolled && (
@@ -93,28 +94,36 @@ export default function CourseDetailPage() {
               {enrolling ? 'Enrolling...' : 'Enroll in Course'}
             </button>
           )}
-          
+
           {isEnrolled && (
             <>
-            <span className="px-4 py-2 bg-green-100 text-green-800 rounded-lg">
-              ✓ Enrolled
-            </span>
-            <Link
-              href={`/learn/${courseId}`}
-              className="px-6 py-2 bg-black text-white rounded-lg hover:bg-gray-800 disabled:opacity-50"
-            >
-              Continue Learning
-            </Link>
+              <span className="px-4 py-2 bg-green-100 text-green-800 rounded-lg">
+                ✓ Enrolled
+              </span>
+              <Link
+                href={`/learn/${courseId}`}
+                className="px-6 py-2 bg-black text-white rounded-lg hover:bg-gray-800 disabled:opacity-50"
+              >
+                Continue Learning
+              </Link>
             </>
           )}
-          
+
           {isOwner && (
-            <button
-              onClick={() => router.push(`/courses/${courseId}/edit`)}
-              className="px-4 py-2 border rounded-lg hover:bg-gray-100"
-            >
-              Edit Course
-            </button>
+            <>
+              <button
+                onClick={() => router.push(`/courses/${courseId}/edit`)}
+                className="px-4 py-2 border rounded-lg hover:bg-gray-100"
+              >
+                Edit Course
+              </button>
+              <Link
+                href={`/submissions/${courseId}`}
+                className="px-4 py-2 border rounded-lg hover:bg-gray-100"
+              >
+                View Submissions
+              </Link>
+            </>
           )}
         </div>
       </div>
@@ -122,17 +131,17 @@ export default function CourseDetailPage() {
       {/* Modules */}
       <div className="space-y-4">
         <h2 className="text-xl font-semibold">Modules ({course.modules?.length || 0})</h2>
-        
+
         {course.modules?.map((module, idx) => (
           <div key={module._id} className="border rounded-lg p-4">
             <h3 className="font-medium">
               {idx + 1}. {module.title}
             </h3>
-            
+
             {/* Resources */}
             <div className="mt-2 space-y-2">
               {module.resources?.map((resource) => (
-                <div 
+                <div
                   key={resource._id}
                   className="flex items-center gap-2 text-sm text-gray-600 pl-4"
                 >
@@ -143,10 +152,16 @@ export default function CourseDetailPage() {
             </div>
           </div>
         ))}
-        
+
         {(!course.modules || course.modules.length === 0) && (
           <p className="text-gray-500">No modules yet</p>
         )}
+      </div>
+
+      {/* Comments Section */}
+      <div className="mt-12">
+        <h2 className="text-xl font-semibold mb-4">Discussion</h2>
+        <Comments courseId={courseId} />
       </div>
     </div>
   );

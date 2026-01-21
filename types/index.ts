@@ -73,3 +73,16 @@ export interface SubjectiveQuestion {
   questionText: string;
   maxWords?: number;
 }
+
+export interface Comment {
+  _id: string;
+  courseId: string;
+  userId: {
+    _id: string;
+    name: string;
+    email: string;
+    role: string;
+  };
+  content: string;
+  createdAt: string;
+}
