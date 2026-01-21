@@ -2,8 +2,20 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { coursesApi } from '@/lib/api';
 import { useAuthStore } from '@/lib/auth-store';
+import { Button } from '@/components/ui/button';
+import {
+  ArrowLeft,
+  Plus,
+  Trash2,
+  ChevronUp,
+  ChevronDown,
+  Video,
+  FileText,
+  GripVertical,
+} from 'lucide-react';
 
 type ResourceInput = {
   type: 'video' | 'document';
@@ -98,7 +110,11 @@ export default function CreateCoursePage() {
     setModules(updated);
   };
 
-  const updateResource = (moduleIndex: number, resourceIndex: number, updates: Partial<ResourceInput>) => {
+  const updateResource = (
+    moduleIndex: number,
+    resourceIndex: number,
+    updates: Partial<ResourceInput>
+  ) => {
     const updated = [...modules];
     updated[moduleIndex].resources[resourceIndex] = {
       ...updated[moduleIndex].resources[resourceIndex],
@@ -109,55 +125,71 @@ export default function CreateCoursePage() {
 
   const deleteResource = (moduleIndex: number, resourceIndex: number) => {
     const updated = [...modules];
-    updated[moduleIndex].resources = updated[moduleIndex].resources.filter((_, i) => i !== resourceIndex);
+    updated[moduleIndex].resources = updated[moduleIndex].resources.filter(
+      (_, i) => i !== resourceIndex
+    );
     setModules(updated);
   };
 
   return (
     <div className="max-w-4xl mx-auto">
-      <h1 className="text-2xl font-bold mb-8">Create New Course</h1>
+      {/* Back Button */}
+      <Link
+        href="/courses"
+        className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900 mb-6 transition-colors"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        Back to Courses
+      </Link>
+
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold tracking-tight">Create New Course</h1>
+        <p className="text-gray-500 mt-1">Build your course with modules and resources</p>
+      </div>
 
       <form onSubmit={handleSubmit}>
         {error && (
-          <div className="mb-6 p-4 bg-red-100 text-red-700 rounded-lg">{error}</div>
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl">
+            {error}
+          </div>
         )}
 
         {/* Basic Info */}
-        <section className="mb-8 p-6 bg-white border rounded-lg">
+        <section className="mb-8 p-6 bg-white border border-gray-100 rounded-xl">
           <h2 className="text-lg font-semibold mb-4">Basic Information</h2>
 
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-1">Title *</label>
+              <label className="block text-sm font-medium mb-1.5">Title *</label>
               <input
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 required
                 minLength={3}
-                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all"
                 placeholder="e.g. Introduction to JavaScript"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1">Description</label>
+              <label className="block text-sm font-medium mb-1.5">Description</label>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={3}
-                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all resize-none"
                 placeholder="What will students learn?"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-1">Thumbnail URL</label>
+              <label className="block text-sm font-medium mb-1.5">Thumbnail URL</label>
               <input
                 type="url"
                 value={thumbnailUrl}
                 onChange={(e) => setThumbnailUrl(e.target.value)}
-                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-black"
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all"
                 placeholder="https://..."
               />
             </div>
@@ -167,167 +199,209 @@ export default function CreateCoursePage() {
         {/* Modules */}
         <section className="mb-8">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold">Modules (Optional)</h2>
-            <button
-              type="button"
-              onClick={addModule}
-              className="px-4 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 text-sm"
-            >
-              + Add Module
-            </button>
+            <div>
+              <h2 className="text-lg font-semibold">Modules</h2>
+              <p className="text-sm text-gray-500">Organize your course content</p>
+            </div>
+            <Button type="button" variant="outline" onClick={addModule}>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Module
+            </Button>
           </div>
 
-          <p className="text-sm text-gray-500 mb-4">
-            You can add modules now or edit them later after creating the course.
-          </p>
+          {modules.length === 0 ? (
+            <div className="text-center py-12 bg-gray-50 border border-dashed border-gray-200 rounded-xl">
+              <p className="text-gray-500 mb-3">No modules yet</p>
+              <Button type="button" variant="outline" onClick={addModule}>
+                <Plus className="w-4 h-4 mr-2" />
+                Add Your First Module
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {modules.map((module, moduleIndex) => (
+                <div
+                  key={moduleIndex}
+                  className="bg-white border border-gray-100 rounded-xl overflow-hidden"
+                >
+                  {/* Module Header */}
+                  <div className="flex items-center gap-3 p-4 bg-gray-50/50 border-b border-gray-100">
+                    <GripVertical className="w-4 h-4 text-gray-300" />
+                    <span className="w-6 h-6 bg-violet-100 text-violet-600 rounded text-xs font-semibold flex items-center justify-center">
+                      {moduleIndex + 1}
+                    </span>
 
-          <div className="space-y-4">
-            {modules.map((module, moduleIndex) => (
-              <div key={moduleIndex} className="border rounded-lg bg-white">
-                {/* Module Header */}
-                <div className="flex items-center gap-3 p-4 border-b">
-                  <span className="text-sm text-gray-500 font-mono">{moduleIndex + 1}</span>
+                    <input
+                      type="text"
+                      value={module.title}
+                      onChange={(e) => updateModule(moduleIndex, { title: e.target.value })}
+                      className="flex-1 px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                      placeholder="Module title"
+                    />
 
-                  <input
-                    type="text"
-                    value={module.title}
-                    onChange={(e) => updateModule(moduleIndex, { title: e.target.value })}
-                    className="flex-1 px-3 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-black"
-                    placeholder="Module title"
-                  />
-
-                  <div className="flex gap-1">
-                    <button
-                      type="button"
-                      onClick={() => moveModule(moduleIndex, 'up')}
-                      disabled={moduleIndex === 0}
-                      className="p-1 text-gray-400 hover:text-black disabled:opacity-30"
-                    >
-                      ↑
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => moveModule(moduleIndex, 'down')}
-                      disabled={moduleIndex === modules.length - 1}
-                      className="p-1 text-gray-400 hover:text-black disabled:opacity-30"
-                    >
-                      ↓
-                    </button>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => setExpandedModule(expandedModule === moduleIndex ? null : moduleIndex)}
-                    className="px-3 py-1 text-sm text-gray-600 hover:text-black"
-                  >
-                    {expandedModule === moduleIndex ? 'Collapse' : 'Expand'}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => deleteModule(moduleIndex)}
-                    className="p-1 text-red-500 hover:text-red-700"
-                  >
-                    ×
-                  </button>
-                </div>
-
-                {/* Module Content */}
-                {expandedModule === moduleIndex && (
-                  <div className="p-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium">Resources</span>
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={() => addResource(moduleIndex, 'video')}
-                          className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
-                        >
-                          + Video
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => addResource(moduleIndex, 'document')}
-                          className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200"
-                        >
-                          + Document
-                        </button>
-                      </div>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => moveModule(moduleIndex, 'up')}
+                        disabled={moduleIndex === 0}
+                        className="p-1.5 text-gray-400 hover:text-gray-600 disabled:opacity-30 transition-colors"
+                      >
+                        <ChevronUp className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => moveModule(moduleIndex, 'down')}
+                        disabled={moduleIndex === modules.length - 1}
+                        className="p-1.5 text-gray-400 hover:text-gray-600 disabled:opacity-30 transition-colors"
+                      >
+                        <ChevronDown className="w-4 h-4" />
+                      </button>
                     </div>
 
-                    {module.resources.length === 0 ? (
-                      <div className="text-sm text-gray-400 py-2">No resources added</div>
-                    ) : (
-                      <div className="space-y-3">
-                        {module.resources.map((resource, resourceIndex) => (
-                          <div key={resourceIndex} className="flex gap-3 p-3 bg-gray-50 rounded-lg">
-                            <span className={`text-xs px-2 py-0.5 rounded self-start ${resource.type === 'video' ? 'bg-blue-100 text-blue-700' : 'bg-green-100 text-green-700'
-                              }`}>
-                              {resource.type}
-                            </span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setExpandedModule(expandedModule === moduleIndex ? null : moduleIndex)
+                      }
+                      className="px-3 py-1.5 text-sm text-gray-600 hover:text-violet-600 transition-colors"
+                    >
+                      {expandedModule === moduleIndex ? 'Collapse' : 'Expand'}
+                    </button>
 
-                            <div className="flex-1 space-y-2">
-                              <input
-                                type="text"
-                                value={resource.title}
-                                onChange={(e) => updateResource(moduleIndex, resourceIndex, { title: e.target.value })}
-                                className="w-full px-3 py-1 border rounded text-sm focus:outline-none focus:ring-1 focus:ring-black"
-                                placeholder="Resource title"
-                              />
-
-                              {resource.type === 'video' ? (
-                                <input
-                                  type="url"
-                                  value={resource.youtubeUrl || ''}
-                                  onChange={(e) => updateResource(moduleIndex, resourceIndex, { youtubeUrl: e.target.value })}
-                                  className="w-full px-3 py-1 border rounded text-sm focus:outline-none focus:ring-1 focus:ring-black"
-                                  placeholder="YouTube URL"
-                                />
-                              ) : (
-                                <textarea
-                                  value={resource.content || ''}
-                                  onChange={(e) => updateResource(moduleIndex, resourceIndex, { content: e.target.value })}
-                                  rows={4}
-                                  className="w-full px-3 py-1 border rounded text-sm focus:outline-none focus:ring-1 focus:ring-black resize-y"
-                                  placeholder="Document content (max 1000 words)"
-                                />
-                              )}
-                            </div>
-
-                            <button
-                              type="button"
-                              onClick={() => deleteResource(moduleIndex, resourceIndex)}
-                              className="text-red-500 hover:text-red-700 self-start"
-                            >
-                              ×
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                    <button
+                      type="button"
+                      onClick={() => deleteModule(moduleIndex)}
+                      className="p-1.5 text-gray-400 hover:text-red-500 transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
-                )}
-              </div>
-            ))}
-          </div>
+
+                  {/* Module Content */}
+                  {expandedModule === moduleIndex && (
+                    <div className="p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-sm font-medium text-gray-700">Resources</span>
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => addResource(moduleIndex, 'video')}
+                            className="text-xs"
+                          >
+                            <Video className="w-3 h-3 mr-1" />
+                            Video
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => addResource(moduleIndex, 'document')}
+                            className="text-xs"
+                          >
+                            <FileText className="w-3 h-3 mr-1" />
+                            Document
+                          </Button>
+                        </div>
+                      </div>
+
+                      {module.resources.length === 0 ? (
+                        <div className="text-sm text-gray-400 py-4 text-center bg-gray-50 rounded-lg">
+                          No resources added yet
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {module.resources.map((resource, resourceIndex) => (
+                            <div
+                              key={resourceIndex}
+                              className="flex gap-3 p-4 bg-gray-50 rounded-lg"
+                            >
+                              <div
+                                className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                                  resource.type === 'video'
+                                    ? 'bg-blue-100 text-blue-600'
+                                    : 'bg-emerald-100 text-emerald-600'
+                                }`}
+                              >
+                                {resource.type === 'video' ? (
+                                  <Video className="w-4 h-4" />
+                                ) : (
+                                  <FileText className="w-4 h-4" />
+                                )}
+                              </div>
+
+                              <div className="flex-1 space-y-2">
+                                <input
+                                  type="text"
+                                  value={resource.title}
+                                  onChange={(e) =>
+                                    updateResource(moduleIndex, resourceIndex, {
+                                      title: e.target.value,
+                                    })
+                                  }
+                                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                                  placeholder="Resource title"
+                                />
+
+                                {resource.type === 'video' ? (
+                                  <input
+                                    type="url"
+                                    value={resource.youtubeUrl || ''}
+                                    onChange={(e) =>
+                                      updateResource(moduleIndex, resourceIndex, {
+                                        youtubeUrl: e.target.value,
+                                      })
+                                    }
+                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                                    placeholder="YouTube URL"
+                                  />
+                                ) : (
+                                  <textarea
+                                    value={resource.content || ''}
+                                    onChange={(e) =>
+                                      updateResource(moduleIndex, resourceIndex, {
+                                        content: e.target.value,
+                                      })
+                                    }
+                                    rows={4}
+                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent resize-y"
+                                    placeholder="Document content (max 1000 words)"
+                                  />
+                                )}
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={() => deleteResource(moduleIndex, resourceIndex)}
+                                className="p-1.5 text-gray-400 hover:text-red-500 transition-colors self-start"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </section>
 
         {/* Submit */}
-        <div className="flex gap-4">
-          <button
+        <div className="flex gap-3">
+          <Button
             type="submit"
             disabled={loading}
-            className="px-6 py-2 bg-black text-white rounded-lg hover:bg-gray-800 disabled:opacity-50"
+            className="bg-violet-600 hover:bg-violet-700"
           >
             {loading ? 'Creating...' : 'Create Course'}
-          </button>
-          <button
-            type="button"
-            onClick={() => router.back()}
-            className="px-6 py-2 border rounded-lg hover:bg-gray-100"
-          >
+          </Button>
+          <Button type="button" variant="outline" onClick={() => router.back()}>
             Cancel
-          </button>
+          </Button>
         </div>
       </form>
     </div>

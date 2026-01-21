@@ -2,11 +2,23 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { coursesApi, progressApi } from '@/lib/api';
 import { useAuthStore } from '@/lib/auth-store';
+import { Button } from '@/components/ui/button';
 import Comments from '@/components/Comments';
+import {
+  BookOpen,
+  Play,
+  Edit,
+  FileText,
+  Video,
+  CheckCircle,
+  Layers,
+  ArrowLeft,
+  Users,
+} from 'lucide-react';
 import type { Course } from '@/types';
-import Link from 'next/link';
 
 export default function CourseDetailPage() {
   const params = useParams();
@@ -62,104 +74,204 @@ export default function CourseDetailPage() {
   };
 
   if (loading) {
-    return <div className="text-center py-12">Loading course...</div>;
+    return (
+      <div className="max-w-4xl mx-auto animate-pulse">
+        <div className="h-8 w-32 bg-gray-200 rounded mb-6" />
+        <div className="aspect-video bg-gray-200 rounded-2xl mb-6" />
+        <div className="h-10 bg-gray-200 rounded w-3/4 mb-4" />
+        <div className="h-4 bg-gray-100 rounded w-full mb-2" />
+        <div className="h-4 bg-gray-100 rounded w-2/3" />
+      </div>
+    );
   }
 
   if (!course) {
-    return <div className="text-center py-12">Course not found</div>;
+    return (
+      <div className="text-center py-20">
+        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <BookOpen className="w-8 h-8 text-gray-400" />
+        </div>
+        <h3 className="text-lg font-semibold mb-2">Course not found</h3>
+        <p className="text-gray-500 mb-6">This course may have been removed or doesn't exist.</p>
+        <Link href="/courses">
+          <Button variant="outline">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Courses
+          </Button>
+        </Link>
+      </div>
+    );
   }
+
+  const totalResources = course.modules?.reduce(
+    (acc, m) => acc + (m.resources?.length || 0),
+    0
+  ) || 0;
 
   return (
     <div className="max-w-4xl mx-auto">
-      {/* Header */}
+      {/* Back Button */}
+      <Link
+        href="/courses"
+        className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900 mb-6 transition-colors"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        Back to Courses
+      </Link>
+
+      {/* Hero Section */}
       <div className="mb-8">
-        {course.thumbnailUrl && (
-          <img
-            src={course.thumbnailUrl}
-            alt={course.title}
-            className="w-full h-64 object-cover rounded-lg mb-4"
-          />
-        )}
-        <h1 className="text-3xl font-bold">{course.title}</h1>
-        <p className="text-gray-600 mt-2">{course.description}</p>
+        <div className="aspect-video relative bg-gradient-to-br from-violet-500 to-indigo-600 rounded-2xl overflow-hidden mb-6">
+          {course.thumbnailUrl ? (
+            <img
+              src={course.thumbnailUrl}
+              alt={course.title}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <BookOpen className="w-20 h-20 text-white/30" />
+            </div>
+          )}
+        </div>
+
+        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight mb-3">
+          {course.title}
+        </h1>
+        <p className="text-gray-600 text-lg leading-relaxed">
+          {course.description || 'No description available'}
+        </p>
+
+        {/* Stats */}
+        <div className="flex flex-wrap items-center gap-4 mt-6 text-sm text-gray-500">
+          <div className="flex items-center gap-1.5">
+            <Layers className="w-4 h-4" />
+            <span>{course.modules?.length || 0} modules</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <FileText className="w-4 h-4" />
+            <span>{totalResources} resources</span>
+          </div>
+        </div>
 
         {/* Actions */}
-        <div className="mt-4 flex gap-4">
+        <div className="mt-6 flex flex-wrap gap-3">
           {user?.role === 'student' && !isEnrolled && (
-            <button
+            <Button
               onClick={handleEnroll}
               disabled={enrolling}
-              className="px-6 py-2 bg-black text-white rounded-lg hover:bg-gray-800 disabled:opacity-50"
+              className="bg-violet-600 hover:bg-violet-700"
             >
-              {enrolling ? 'Enrolling...' : 'Enroll in Course'}
-            </button>
+              {enrolling ? (
+                'Enrolling...'
+              ) : (
+                <>
+                  <Play className="w-4 h-4 mr-2" />
+                  Enroll in Course
+                </>
+              )}
+            </Button>
           )}
 
           {isEnrolled && (
             <>
-              <span className="px-4 py-2 bg-green-100 text-green-800 rounded-lg">
-                ✓ Enrolled
-              </span>
-              <Link
-                href={`/learn/${courseId}`}
-                className="px-6 py-2 bg-black text-white rounded-lg hover:bg-gray-800 disabled:opacity-50"
-              >
-                Continue Learning
+              <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 rounded-lg text-sm font-medium">
+                <CheckCircle className="w-4 h-4" />
+                Enrolled
+              </div>
+              <Link href={`/learn/${courseId}`}>
+                <Button className="bg-violet-600 hover:bg-violet-700">
+                  <Play className="w-4 h-4 mr-2" />
+                  Continue Learning
+                </Button>
               </Link>
             </>
           )}
 
           {isOwner && (
             <>
-              <button
+              <Button
+                variant="outline"
                 onClick={() => router.push(`/courses/${courseId}/edit`)}
-                className="px-4 py-2 border rounded-lg hover:bg-gray-100"
               >
+                <Edit className="w-4 h-4 mr-2" />
                 Edit Course
-              </button>
-              <Link
-                href={`/submissions/${courseId}`}
-                className="px-4 py-2 border rounded-lg hover:bg-gray-100"
-              >
-                View Submissions
+              </Button>
+              <Link href={`/submissions/${courseId}`}>
+                <Button variant="outline">
+                  <Users className="w-4 h-4 mr-2" />
+                  View Submissions
+                </Button>
               </Link>
             </>
           )}
         </div>
       </div>
 
-      {/* Modules */}
-      <div className="space-y-4">
-        <h2 className="text-xl font-semibold">Modules ({course.modules?.length || 0})</h2>
+      {/* Modules Section */}
+      <div className="mb-12">
+        <h2 className="text-xl font-semibold mb-4">
+          Course Content
+        </h2>
 
-        {course.modules?.map((module, idx) => (
-          <div key={module._id} className="border rounded-lg p-4">
-            <h3 className="font-medium">
-              {idx + 1}. {module.title}
-            </h3>
+        {course.modules && course.modules.length > 0 ? (
+          <div className="space-y-3">
+            {course.modules.map((module, idx) => (
+              <div
+                key={module._id}
+                className="bg-white border border-gray-100 rounded-xl p-5 hover:border-violet-200 hover:shadow-sm transition-all"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="w-8 h-8 bg-violet-100 text-violet-600 rounded-lg flex items-center justify-center text-sm font-semibold shrink-0">
+                    {idx + 1}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-medium text-lg">{module.title}</h3>
 
-            {/* Resources */}
-            <div className="mt-2 space-y-2">
-              {module.resources?.map((resource) => (
-                <div
-                  key={resource._id}
-                  className="flex items-center gap-2 text-sm text-gray-600 pl-4"
-                >
-                  <span>{resource.type === 'video' ? '🎬' : '📄'}</span>
-                  <span>{resource.title}</span>
+                    {/* Resources List */}
+                    {module.resources && module.resources.length > 0 && (
+                      <div className="mt-3 space-y-2">
+                        {module.resources.map((resource) => (
+                          <div
+                            key={resource._id}
+                            className="flex items-center gap-3 text-sm text-gray-600 py-1"
+                          >
+                            {resource.type === 'video' ? (
+                              <Video className="w-4 h-4 text-blue-500" />
+                            ) : (
+                              <FileText className="w-4 h-4 text-emerald-500" />
+                            )}
+                            <span>{resource.title}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {(!module.resources || module.resources.length === 0) && (
+                      <p className="text-sm text-gray-400 mt-2">No resources yet</p>
+                    )}
+                  </div>
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
-        ))}
-
-        {(!course.modules || course.modules.length === 0) && (
-          <p className="text-gray-500">No modules yet</p>
+        ) : (
+          <div className="text-center py-12 bg-gray-50 rounded-xl">
+            <Layers className="w-10 h-10 text-gray-300 mx-auto mb-3" />
+            <p className="text-gray-500">No modules yet</p>
+            {isOwner && (
+              <Link href={`/courses/${courseId}/edit`}>
+                <Button variant="link" className="text-violet-600 mt-2">
+                  Add modules →
+                </Button>
+              </Link>
+            )}
+          </div>
         )}
       </div>
 
       {/* Comments Section */}
-      <div className="mt-12">
+      <div>
         <h2 className="text-xl font-semibold mb-4">Discussion</h2>
         <Comments courseId={courseId} />
       </div>
