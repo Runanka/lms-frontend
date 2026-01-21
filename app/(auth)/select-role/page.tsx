@@ -61,7 +61,7 @@ export default function SelectRolePage() {
           How do you want to use Skillwise?
         </h1>
         <p className="text-gray-500 text-lg mb-10">
-          Choose your role to get started. You can always change this later.
+          Choose your role to get started.
         </p>
 
         <div className="grid sm:grid-cols-2 gap-4">
@@ -69,11 +69,10 @@ export default function SelectRolePage() {
           <button
             onClick={() => handleSelect('student')}
             disabled={selecting !== null}
-            className={`group relative p-6 bg-white border-2 rounded-2xl text-left transition-all duration-200 hover:border-violet-500 hover:shadow-lg hover:shadow-violet-500/10 ${
-              selecting === 'student'
+            className={`group relative p-6 bg-white border-2 rounded-2xl text-left transition-all duration-200 hover:border-violet-500 hover:shadow-lg hover:shadow-violet-500/10 ${selecting === 'student'
                 ? 'border-violet-500 shadow-lg shadow-violet-500/10'
                 : 'border-gray-100'
-            } ${selecting !== null && selecting !== 'student' ? 'opacity-50' : ''}`}
+              } ${selecting !== null && selecting !== 'student' ? 'opacity-50' : ''}`}
           >
             <div className="w-12 h-12 bg-violet-100 rounded-xl flex items-center justify-center mb-4 group-hover:bg-violet-500 group-hover:text-white transition-colors">
               <GraduationCap className="w-6 h-6 text-violet-600 group-hover:text-white" />
@@ -93,11 +92,10 @@ export default function SelectRolePage() {
           <button
             onClick={() => handleSelect('coach')}
             disabled={selecting !== null}
-            className={`group relative p-6 bg-white border-2 rounded-2xl text-left transition-all duration-200 hover:border-indigo-500 hover:shadow-lg hover:shadow-indigo-500/10 ${
-              selecting === 'coach'
+            className={`group relative p-6 bg-white border-2 rounded-2xl text-left transition-all duration-200 hover:border-indigo-500 hover:shadow-lg hover:shadow-indigo-500/10 ${selecting === 'coach'
                 ? 'border-indigo-500 shadow-lg shadow-indigo-500/10'
                 : 'border-gray-100'
-            } ${selecting !== null && selecting !== 'coach' ? 'opacity-50' : ''}`}
+              } ${selecting !== null && selecting !== 'coach' ? 'opacity-50' : ''}`}
           >
             <div className="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center mb-4 group-hover:bg-indigo-500 group-hover:text-white transition-colors">
               <Lightbulb className="w-6 h-6 text-indigo-600 group-hover:text-white" />
