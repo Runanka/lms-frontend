@@ -13,13 +13,23 @@ export default function DashboardLayout({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { isAuthenticated, user } = useAuthStore();
+  const { isAuthenticated, user, _hasHydrated } = useAuthStore();
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    // Only redirect AFTER hydration is complete
+    if (_hasHydrated && !isAuthenticated) {
       router.replace('/');
     }
-  }, [isAuthenticated, router]);
+  }, [_hasHydrated, isAuthenticated, router]);
+
+  // Show loading while hydrating from localStorage
+  if (!_hasHydrated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900" />
+      </div>
+    );
+  }
 
   if (!isAuthenticated || !user) {
     return null; // Will redirect
@@ -61,8 +71,8 @@ export default function DashboardLayout({
                   key={item.href}
                   href={item.href}
                   className={`px-3 py-2 rounded-lg text-sm ${pathname === item.href
-                      ? 'bg-gray-100 font-medium'
-                      : 'text-gray-600 hover:text-black'
+                    ? 'bg-gray-100 font-medium'
+                    : 'text-gray-600 hover:text-black'
                     }`}
                 >
                   {item.label}

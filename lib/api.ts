@@ -59,6 +59,26 @@ export const pathsApi = {
 export const assignmentsApi = {
   get: (id: string, token: string) =>
     api<{ assignment: Assignment }>(`/assignments/${id}`, { token }),
+  listByCourse: (courseId: string, token: string) =>
+    api<{ assignments: Assignment[] }>(`/assignments/course/${courseId}`, { token }),
+  create: (data: {
+    title: string;
+    type: 'mcq' | 'subjective';
+    courseId: string;
+    moduleId?: string;
+    mcqQuestions?: { questionText: string; options: { text: string; isCorrect: boolean }[] }[];
+    subjectiveQuestions?: { questionText: string; maxWords?: number }[];
+  }, token: string) =>
+    api<{ assignmentId: string }>('/assignments', { method: 'POST', body: data, token }),
+  update: (id: string, data: Partial<{
+    title: string;
+    type: 'mcq' | 'subjective';
+    mcqQuestions?: { questionText: string; options: { text: string; isCorrect: boolean }[] }[];
+    subjectiveQuestions?: { questionText: string; maxWords?: number }[];
+  }>, token: string) =>
+    api<{ assignment: Assignment }>(`/assignments/${id}`, { method: 'PUT', body: data, token }),
+  delete: (id: string, token: string) =>
+    api<{ message: string }>(`/assignments/${id}`, { method: 'DELETE', token }),
 };
 
 export const progressApi = {

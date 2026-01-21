@@ -6,9 +6,11 @@ interface AuthState {
   user: User | null;
   accessToken: string | null;
   isAuthenticated: boolean;
+  _hasHydrated: boolean;
   
   setAuth: (user: User, token: string) => void;
   logout: () => void;
+  setHasHydrated: (state: boolean) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -17,6 +19,7 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       accessToken: null,
       isAuthenticated: false,
+      _hasHydrated: false,
 
       setAuth: (user, token) => set({ 
         user, 
@@ -29,9 +32,14 @@ export const useAuthStore = create<AuthState>()(
         accessToken: null, 
         isAuthenticated: false,
       }),
+
+      setHasHydrated: (state) => set({ _hasHydrated: state }),
     }),
     {
       name: 'lms-auth',
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true);
+      },
     }
   )
 );

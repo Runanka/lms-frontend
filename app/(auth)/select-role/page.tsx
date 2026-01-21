@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/auth-store';
 import { usersApi } from '@/lib/api';
@@ -9,27 +10,33 @@ export default function SelectRolePage() {
   const router = useRouter();
   const { accessToken, user, setAuth } = useAuthStore();
 
-  // If no token, redirect to home
-  if (!accessToken) {
-    router.replace('/');
-    return null;
-  }
+  // Handle redirects in useEffect to avoid setState during render
+  useEffect(() => {
+    if (!accessToken) {
+      router.replace('/');
+    } else if (user?.role) {
+      router.replace('/courses');
+    }
+  }, [accessToken, user?.role, router]);
 
-  // If already has role, go to dashboard
-  if (user?.role) {
-    router.replace('/courses');
-    return null;
+  // Show nothing while redirecting
+  if (!accessToken || user?.role) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900" />
+      </div>
+    );
   }
 
   const handleSelect = async (role: Role) => {
     try {
       await usersApi.setRole(role, accessToken);
-      
+
       // Update local user state
       if (user) {
         setAuth({ ...user, role }, accessToken);
       }
-      
+
       router.replace('/courses');
     } catch (err) {
       console.error('Failed to set role:', err);
