@@ -23,6 +23,7 @@ export interface Module {
   order: number;
   resources: Resource[];
   assignmentId?: string;
+  assignment?: Assignment; // Populated assignment if available
 }
 
 export interface Resource {
@@ -43,6 +44,17 @@ export interface Path {
   createdAt: string;
 }
 
+export interface Submission {
+  _id: string;
+  assignmentId: string;
+  submittedAt: string;
+  mcqAnswers?: number[];
+  subjectiveAnswers?: string[];
+  score?: number;
+  feedback?: string;
+  gradedAt?: string;
+}
+
 export interface Progress {
   _id: string;
   courseId: string;
@@ -50,6 +62,7 @@ export interface Progress {
   completedAt?: string;
   completedVideos: string[];
   completedDocuments: string[];
+  submissions: Submission[];
   progress: number;
 }
 

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { coursesApi } from '@/lib/api';
+import { coursesApi, assignmentsApi } from '@/lib/api';
 import { useAuthStore } from '@/lib/auth-store';
 import { Button } from '@/components/ui/button';
 import {
@@ -15,7 +15,10 @@ import {
   Video,
   FileText,
   GripVertical,
+  ClipboardList,
+  AlertCircle,
 } from 'lucide-react';
+import type { Assignment } from '@/types';
 
 type ResourceInput = {
   type: 'video' | 'document';
@@ -28,6 +31,13 @@ type ModuleInput = {
   title: string;
   order: number;
   resources: ResourceInput[];
+  assignmentId?: string;
+  pendingAssignment?: {
+    title: string;
+    type: 'mcq' | 'subjective';
+    mcqQuestions?: { questionText: string; options: { text: string; isCorrect: boolean }[] }[];
+    subjectiveQuestions?: { questionText: string; maxWords?: number }[];
+  };
 };
 
 export default function CreateCoursePage() {
@@ -43,28 +53,80 @@ export default function CreateCoursePage() {
 
   // UI state
   const [expandedModule, setExpandedModule] = useState<number | null>(null);
+  const [showAssignmentModal, setShowAssignmentModal] = useState<{ moduleIndex: number } | null>(null);
+
+  // Validation
+  const validateCourse = (): string | null => {
+    if (!title.trim()) return 'Course title is required';
+    if (modules.length === 0) return 'Course must have at least one module';
+
+    for (let i = 0; i < modules.length; i++) {
+      const m = modules[i];
+      if (!m.title.trim()) return `Module ${i + 1} needs a title`;
+
+      const hasContent = m.resources.length > 0 || m.pendingAssignment;
+      if (!hasContent) return `Module "${m.title || i + 1}" must have at least one resource or assignment`;
+
+      for (let j = 0; j < m.resources.length; j++) {
+        const r = m.resources[j];
+        if (!r.title.trim()) return `Resource in module "${m.title}" needs a title`;
+        if (r.type === 'video' && !r.youtubeUrl?.trim()) {
+          return `Video "${r.title || 'Untitled'}" in module "${m.title}" needs a YouTube URL`;
+        }
+        if (r.type === 'document' && !r.content?.trim()) {
+          return `Document "${r.title || 'Untitled'}" in module "${m.title}" needs content`;
+        }
+      }
+    }
+
+    return null;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!accessToken) return;
 
+    const validationError = validateCourse();
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
     setLoading(true);
     setError('');
 
     try {
-      const result = await coursesApi.create(
+      // First create the course without assignments
+      const courseResult = await coursesApi.create(
         {
           title,
           description,
           thumbnailUrl: thumbnailUrl || undefined,
           modules: modules.map((m, i) => ({
-            ...m,
+            title: m.title,
             order: i,
+            resources: m.resources,
           })),
         } as any,
         accessToken
       );
-      router.push(`/courses/${result.courseId}`);
+
+      const courseId = courseResult.courseId;
+
+      // Now create any pending assignments and update modules
+      for (let i = 0; i < modules.length; i++) {
+        const m = modules[i];
+        if (m.pendingAssignment) {
+          const assignmentData: any = {
+            ...m.pendingAssignment,
+            courseId,
+          };
+
+          await assignmentsApi.create(assignmentData, accessToken);
+        }
+      }
+
+      router.push(`/courses/${courseId}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create course');
     } finally {
@@ -149,8 +211,9 @@ export default function CreateCoursePage() {
 
       <form onSubmit={handleSubmit}>
         {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl">
-            {error}
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+            <span>{error}</span>
           </div>
         )}
 
@@ -200,8 +263,10 @@ export default function CreateCoursePage() {
         <section className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-lg font-semibold">Modules</h2>
-              <p className="text-sm text-gray-500">Organize your course content</p>
+              <h2 className="text-lg font-semibold">Modules *</h2>
+              <p className="text-sm text-gray-500">
+                Each module must have at least one resource or assignment
+              </p>
             </div>
             <Button type="button" variant="outline" onClick={addModule}>
               <Plus className="w-4 h-4 mr-2" />
@@ -212,6 +277,9 @@ export default function CreateCoursePage() {
           {modules.length === 0 ? (
             <div className="text-center py-12 bg-gray-50 border border-dashed border-gray-200 rounded-xl">
               <p className="text-gray-500 mb-3">No modules yet</p>
+              <p className="text-sm text-gray-400 mb-4">
+                Add at least one module with content to create the course
+              </p>
               <Button type="button" variant="outline" onClick={addModule}>
                 <Plus className="w-4 h-4 mr-2" />
                 Add Your First Module
@@ -219,173 +287,240 @@ export default function CreateCoursePage() {
             </div>
           ) : (
             <div className="space-y-4">
-              {modules.map((module, moduleIndex) => (
-                <div
-                  key={moduleIndex}
-                  className="bg-white border border-gray-100 rounded-xl overflow-hidden"
-                >
-                  {/* Module Header */}
-                  <div className="flex items-center gap-3 p-4 bg-gray-50/50 border-b border-gray-100">
-                    <GripVertical className="w-4 h-4 text-gray-300" />
-                    <span className="w-6 h-6 bg-violet-100 text-violet-600 rounded text-xs font-semibold flex items-center justify-center">
-                      {moduleIndex + 1}
-                    </span>
+              {modules.map((module, moduleIndex) => {
+                const hasContent = module.resources.length > 0 || module.pendingAssignment;
 
-                    <input
-                      type="text"
-                      value={module.title}
-                      onChange={(e) => updateModule(moduleIndex, { title: e.target.value })}
-                      className="flex-1 px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
-                      placeholder="Module title"
-                    />
+                return (
+                  <div
+                    key={moduleIndex}
+                    className={`bg-white border rounded-xl overflow-hidden ${
+                      !hasContent ? 'border-amber-200' : 'border-gray-100'
+                    }`}
+                  >
+                    {/* Module Header */}
+                    <div className="flex items-center gap-3 p-4 bg-gray-50/50 border-b border-gray-100">
+                      <GripVertical className="w-4 h-4 text-gray-300" />
+                      <span className="w-6 h-6 bg-violet-100 text-violet-600 rounded text-xs font-semibold flex items-center justify-center">
+                        {moduleIndex + 1}
+                      </span>
 
-                    <div className="flex items-center gap-1">
-                      <button
-                        type="button"
-                        onClick={() => moveModule(moduleIndex, 'up')}
-                        disabled={moduleIndex === 0}
-                        className="p-1.5 text-gray-400 hover:text-gray-600 disabled:opacity-30 transition-colors"
-                      >
-                        <ChevronUp className="w-4 h-4" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => moveModule(moduleIndex, 'down')}
-                        disabled={moduleIndex === modules.length - 1}
-                        className="p-1.5 text-gray-400 hover:text-gray-600 disabled:opacity-30 transition-colors"
-                      >
-                        <ChevronDown className="w-4 h-4" />
-                      </button>
-                    </div>
+                      <input
+                        type="text"
+                        value={module.title}
+                        onChange={(e) => updateModule(moduleIndex, { title: e.target.value })}
+                        className="flex-1 px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                        placeholder="Module title *"
+                      />
 
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setExpandedModule(expandedModule === moduleIndex ? null : moduleIndex)
-                      }
-                      className="px-3 py-1.5 text-sm text-gray-600 hover:text-violet-600 transition-colors"
-                    >
-                      {expandedModule === moduleIndex ? 'Collapse' : 'Expand'}
-                    </button>
+                      {!hasContent && (
+                        <span className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded">
+                          Needs content
+                        </span>
+                      )}
 
-                    <button
-                      type="button"
-                      onClick={() => deleteModule(moduleIndex)}
-                      className="p-1.5 text-gray-400 hover:text-red-500 transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-
-                  {/* Module Content */}
-                  {expandedModule === moduleIndex && (
-                    <div className="p-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="text-sm font-medium text-gray-700">Resources</span>
-                        <div className="flex gap-2">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => addResource(moduleIndex, 'video')}
-                            className="text-xs"
-                          >
-                            <Video className="w-3 h-3 mr-1" />
-                            Video
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => addResource(moduleIndex, 'document')}
-                            className="text-xs"
-                          >
-                            <FileText className="w-3 h-3 mr-1" />
-                            Document
-                          </Button>
-                        </div>
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => moveModule(moduleIndex, 'up')}
+                          disabled={moduleIndex === 0}
+                          className="p-1.5 text-gray-400 hover:text-gray-600 disabled:opacity-30 transition-colors"
+                        >
+                          <ChevronUp className="w-4 h-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => moveModule(moduleIndex, 'down')}
+                          disabled={moduleIndex === modules.length - 1}
+                          className="p-1.5 text-gray-400 hover:text-gray-600 disabled:opacity-30 transition-colors"
+                        >
+                          <ChevronDown className="w-4 h-4" />
+                        </button>
                       </div>
 
-                      {module.resources.length === 0 ? (
-                        <div className="text-sm text-gray-400 py-4 text-center bg-gray-50 rounded-lg">
-                          No resources added yet
-                        </div>
-                      ) : (
-                        <div className="space-y-3">
-                          {module.resources.map((resource, resourceIndex) => (
-                            <div
-                              key={resourceIndex}
-                              className="flex gap-3 p-4 bg-gray-50 rounded-lg"
-                            >
-                              <div
-                                className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                                  resource.type === 'video'
-                                    ? 'bg-blue-100 text-blue-600'
-                                    : 'bg-emerald-100 text-emerald-600'
-                                }`}
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setExpandedModule(expandedModule === moduleIndex ? null : moduleIndex)
+                        }
+                        className="px-3 py-1.5 text-sm text-gray-600 hover:text-violet-600 transition-colors"
+                      >
+                        {expandedModule === moduleIndex ? 'Collapse' : 'Expand'}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => deleteModule(moduleIndex)}
+                        className="p-1.5 text-gray-400 hover:text-red-500 transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    {/* Module Content */}
+                    {expandedModule === moduleIndex && (
+                      <div className="p-4 space-y-4">
+                        {/* Resources */}
+                        <div>
+                          <div className="flex items-center justify-between mb-3">
+                            <span className="text-sm font-medium text-gray-700">Resources</span>
+                            <div className="flex gap-2">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => addResource(moduleIndex, 'video')}
+                                className="text-xs"
                               >
-                                {resource.type === 'video' ? (
-                                  <Video className="w-4 h-4" />
-                                ) : (
-                                  <FileText className="w-4 h-4" />
-                                )}
+                                <Video className="w-3 h-3 mr-1" />
+                                Video
+                              </Button>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => addResource(moduleIndex, 'document')}
+                                className="text-xs"
+                              >
+                                <FileText className="w-3 h-3 mr-1" />
+                                Document
+                              </Button>
+                            </div>
+                          </div>
+
+                          {module.resources.length === 0 ? (
+                            <div className="text-sm text-gray-400 py-4 text-center bg-gray-50 rounded-lg">
+                              No resources added yet
+                            </div>
+                          ) : (
+                            <div className="space-y-3">
+                              {module.resources.map((resource, resourceIndex) => (
+                                <div
+                                  key={resourceIndex}
+                                  className="flex gap-3 p-4 bg-gray-50 rounded-lg"
+                                >
+                                  <div
+                                    className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                                      resource.type === 'video'
+                                        ? 'bg-blue-100 text-blue-600'
+                                        : 'bg-emerald-100 text-emerald-600'
+                                    }`}
+                                  >
+                                    {resource.type === 'video' ? (
+                                      <Video className="w-4 h-4" />
+                                    ) : (
+                                      <FileText className="w-4 h-4" />
+                                    )}
+                                  </div>
+
+                                  <div className="flex-1 space-y-2">
+                                    <input
+                                      type="text"
+                                      value={resource.title}
+                                      onChange={(e) =>
+                                        updateResource(moduleIndex, resourceIndex, {
+                                          title: e.target.value,
+                                        })
+                                      }
+                                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                                      placeholder="Resource title *"
+                                    />
+
+                                    {resource.type === 'video' ? (
+                                      <input
+                                        type="url"
+                                        value={resource.youtubeUrl || ''}
+                                        onChange={(e) =>
+                                          updateResource(moduleIndex, resourceIndex, {
+                                            youtubeUrl: e.target.value,
+                                          })
+                                        }
+                                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
+                                        placeholder="YouTube URL *"
+                                      />
+                                    ) : (
+                                      <textarea
+                                        value={resource.content || ''}
+                                        onChange={(e) =>
+                                          updateResource(moduleIndex, resourceIndex, {
+                                            content: e.target.value,
+                                          })
+                                        }
+                                        rows={4}
+                                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent resize-y"
+                                        placeholder="Document content * (required)"
+                                      />
+                                    )}
+                                  </div>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => deleteResource(moduleIndex, resourceIndex)}
+                                    className="p-1.5 text-gray-400 hover:text-red-500 transition-colors self-start"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Assignment */}
+                        <div className="pt-4 border-t border-gray-100">
+                          <div className="flex items-center justify-between mb-3">
+                            <span className="text-sm font-medium text-gray-700">Assignment</span>
+                            {!module.pendingAssignment && (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setShowAssignmentModal({ moduleIndex })}
+                                className="text-xs"
+                              >
+                                <ClipboardList className="w-3 h-3 mr-1" />
+                                Add Assignment
+                              </Button>
+                            )}
+                          </div>
+
+                          {module.pendingAssignment ? (
+                            <div className="flex items-center justify-between p-4 bg-violet-50 rounded-lg">
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 bg-violet-100 rounded-lg flex items-center justify-center">
+                                  <ClipboardList className="w-4 h-4 text-violet-600" />
+                                </div>
+                                <div>
+                                  <span className="font-medium text-sm">
+                                    {module.pendingAssignment.title}
+                                  </span>
+                                  <span className="ml-2 text-xs text-violet-600 bg-violet-100 px-1.5 py-0.5 rounded">
+                                    {module.pendingAssignment.type === 'mcq'
+                                      ? 'MCQ Quiz'
+                                      : 'Subjective'}
+                                  </span>
+                                </div>
                               </div>
-
-                              <div className="flex-1 space-y-2">
-                                <input
-                                  type="text"
-                                  value={resource.title}
-                                  onChange={(e) =>
-                                    updateResource(moduleIndex, resourceIndex, {
-                                      title: e.target.value,
-                                    })
-                                  }
-                                  className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
-                                  placeholder="Resource title"
-                                />
-
-                                {resource.type === 'video' ? (
-                                  <input
-                                    type="url"
-                                    value={resource.youtubeUrl || ''}
-                                    onChange={(e) =>
-                                      updateResource(moduleIndex, resourceIndex, {
-                                        youtubeUrl: e.target.value,
-                                      })
-                                    }
-                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
-                                    placeholder="YouTube URL"
-                                  />
-                                ) : (
-                                  <textarea
-                                    value={resource.content || ''}
-                                    onChange={(e) =>
-                                      updateResource(moduleIndex, resourceIndex, {
-                                        content: e.target.value,
-                                      })
-                                    }
-                                    rows={4}
-                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent resize-y"
-                                    placeholder="Document content (max 1000 words)"
-                                  />
-                                )}
-                              </div>
-
                               <button
                                 type="button"
-                                onClick={() => deleteResource(moduleIndex, resourceIndex)}
-                                className="p-1.5 text-gray-400 hover:text-red-500 transition-colors self-start"
+                                onClick={() =>
+                                  updateModule(moduleIndex, { pendingAssignment: undefined })
+                                }
+                                className="text-xs text-red-500 hover:text-red-700"
                               >
-                                <Trash2 className="w-4 h-4" />
+                                Remove
                               </button>
                             </div>
-                          ))}
+                          ) : (
+                            <div className="text-sm text-gray-400 py-4 text-center bg-gray-50 rounded-lg">
+                              No assignment attached
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </section>
@@ -404,6 +539,332 @@ export default function CreateCoursePage() {
           </Button>
         </div>
       </form>
+
+      {/* Assignment Modal */}
+      {showAssignmentModal && (
+        <AssignmentModal
+          onClose={() => setShowAssignmentModal(null)}
+          onCreated={(assignment) => {
+            updateModule(showAssignmentModal.moduleIndex, { pendingAssignment: assignment });
+            setShowAssignmentModal(null);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+// Assignment creation modal component for create course (no API call yet)
+function AssignmentModal({
+  onClose,
+  onCreated,
+}: {
+  onClose: () => void;
+  onCreated: (assignment: {
+    title: string;
+    type: 'mcq' | 'subjective';
+    mcqQuestions?: { questionText: string; options: { text: string; isCorrect: boolean }[] }[];
+    subjectiveQuestions?: { questionText: string; maxWords?: number }[];
+  }) => void;
+}) {
+  const [title, setTitle] = useState('');
+  const [type, setType] = useState<'mcq' | 'subjective'>('mcq');
+  const [mcqQuestions, setMcqQuestions] = useState<
+    { questionText: string; options: { text: string; isCorrect: boolean }[] }[]
+  >([{ questionText: '', options: [{ text: '', isCorrect: true }, { text: '', isCorrect: false }] }]);
+  const [subjectiveQuestions, setSubjectiveQuestions] = useState<
+    { questionText: string; maxWords?: number }[]
+  >([{ questionText: '' }]);
+  const [error, setError] = useState('');
+
+  const validateAssignment = (): string | null => {
+    if (!title.trim()) return 'Assignment title is required';
+
+    if (type === 'mcq') {
+      for (let i = 0; i < mcqQuestions.length; i++) {
+        const q = mcqQuestions[i];
+        if (!q.questionText.trim()) return `Question ${i + 1} needs text`;
+        const filledOptions = q.options.filter((o) => o.text.trim());
+        if (filledOptions.length < 2) return `Question ${i + 1} needs at least 2 options`;
+        if (!q.options.some((o) => o.isCorrect && o.text.trim())) {
+          return `Question ${i + 1} needs a correct answer`;
+        }
+      }
+    } else {
+      for (let i = 0; i < subjectiveQuestions.length; i++) {
+        if (!subjectiveQuestions[i].questionText.trim()) {
+          return `Question ${i + 1} needs text`;
+        }
+      }
+    }
+
+    return null;
+  };
+
+  const handleCreate = () => {
+    const validationError = validateAssignment();
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
+    if (type === 'mcq') {
+      onCreated({
+        title,
+        type,
+        mcqQuestions: mcqQuestions.map((q) => ({
+          questionText: q.questionText,
+          options: q.options.filter((o) => o.text.trim()),
+        })),
+      });
+    } else {
+      onCreated({
+        title,
+        type,
+        subjectiveQuestions,
+      });
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="p-6">
+          <h3 className="text-xl font-bold mb-1">Create Assignment</h3>
+          <p className="text-sm text-gray-500 mb-6">
+            Add a quiz or written assignment to this module
+          </p>
+
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+              {error}
+            </div>
+          )}
+
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-1.5">Title *</label>
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500"
+                placeholder="Assignment title"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1.5">Type</label>
+              <select
+                value={type}
+                onChange={(e) => setType(e.target.value as 'mcq' | 'subjective')}
+                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500"
+              >
+                <option value="mcq">Multiple Choice (MCQ)</option>
+                <option value="subjective">Subjective / Written</option>
+              </select>
+            </div>
+
+            {type === 'mcq' ? (
+              <div>
+                <label className="block text-sm font-medium mb-2">Questions *</label>
+                <div className="space-y-4">
+                  {mcqQuestions.map((q, qIndex) => (
+                    <div key={qIndex} className="p-4 bg-gray-50 rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium">Question {qIndex + 1}</span>
+                        {mcqQuestions.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setMcqQuestions(mcqQuestions.filter((_, i) => i !== qIndex))
+                            }
+                            className="text-red-500 text-sm hover:text-red-700"
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </div>
+
+                      <input
+                        type="text"
+                        value={q.questionText}
+                        onChange={(e) => {
+                          const updated = [...mcqQuestions];
+                          updated[qIndex].questionText = e.target.value;
+                          setMcqQuestions(updated);
+                        }}
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg mb-3"
+                        placeholder="Question text *"
+                      />
+
+                      <p className="text-xs text-gray-500 mb-2">Select the correct answer:</p>
+                      <div className="space-y-2">
+                        {q.options.map((opt, optIndex) => (
+                          <div key={optIndex} className="flex items-center gap-2">
+                            <input
+                              type="radio"
+                              name={`correct-${qIndex}`}
+                              checked={opt.isCorrect}
+                              onChange={() => {
+                                const updated = [...mcqQuestions];
+                                updated[qIndex].options = updated[qIndex].options.map((o, i) => ({
+                                  ...o,
+                                  isCorrect: i === optIndex,
+                                }));
+                                setMcqQuestions(updated);
+                              }}
+                              className="text-violet-600 focus:ring-violet-500"
+                            />
+                            <input
+                              type="text"
+                              value={opt.text}
+                              onChange={(e) => {
+                                const updated = [...mcqQuestions];
+                                updated[qIndex].options[optIndex].text = e.target.value;
+                                setMcqQuestions(updated);
+                              }}
+                              className="flex-1 px-3 py-1.5 border border-gray-200 rounded-lg text-sm"
+                              placeholder={`Option ${optIndex + 1}`}
+                            />
+                            {q.options.length > 2 && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const updated = [...mcqQuestions];
+                                  updated[qIndex].options = updated[qIndex].options.filter(
+                                    (_, i) => i !== optIndex
+                                  );
+                                  setMcqQuestions(updated);
+                                }}
+                                className="text-gray-400 hover:text-red-500"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+
+                      {q.options.length < 6 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updated = [...mcqQuestions];
+                            updated[qIndex].options.push({ text: '', isCorrect: false });
+                            setMcqQuestions(updated);
+                          }}
+                          className="mt-2 text-xs text-violet-600 hover:text-violet-700"
+                        >
+                          + Add option
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setMcqQuestions([
+                      ...mcqQuestions,
+                      {
+                        questionText: '',
+                        options: [
+                          { text: '', isCorrect: true },
+                          { text: '', isCorrect: false },
+                        ],
+                      },
+                    ])
+                  }
+                  className="mt-3 text-sm text-violet-600 hover:text-violet-700"
+                >
+                  + Add Question
+                </button>
+              </div>
+            ) : (
+              <div>
+                <label className="block text-sm font-medium mb-2">Questions *</label>
+                <div className="space-y-3">
+                  {subjectiveQuestions.map((q, qIndex) => (
+                    <div key={qIndex} className="p-4 bg-gray-50 rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium">Question {qIndex + 1}</span>
+                        {subjectiveQuestions.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setSubjectiveQuestions(
+                                subjectiveQuestions.filter((_, i) => i !== qIndex)
+                              )
+                            }
+                            className="text-red-500 text-sm hover:text-red-700"
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </div>
+
+                      <textarea
+                        value={q.questionText}
+                        onChange={(e) => {
+                          const updated = [...subjectiveQuestions];
+                          updated[qIndex].questionText = e.target.value;
+                          setSubjectiveQuestions(updated);
+                        }}
+                        rows={2}
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg mb-2"
+                        placeholder="Question text *"
+                      />
+
+                      <div className="flex items-center gap-2">
+                        <label className="text-xs text-gray-500">Max words (optional):</label>
+                        <input
+                          type="number"
+                          value={q.maxWords || ''}
+                          onChange={(e) => {
+                            const updated = [...subjectiveQuestions];
+                            updated[qIndex].maxWords = e.target.value
+                              ? parseInt(e.target.value)
+                              : undefined;
+                            setSubjectiveQuestions(updated);
+                          }}
+                          className="w-24 px-3 py-1 border border-gray-200 rounded-lg text-sm"
+                          placeholder="500"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setSubjectiveQuestions([...subjectiveQuestions, { questionText: '' }])
+                  }
+                  className="mt-3 text-sm text-violet-600 hover:text-violet-700"
+                >
+                  + Add Question
+                </button>
+              </div>
+            )}
+          </div>
+
+          <div className="flex justify-end gap-3 mt-6 pt-4 border-t">
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={handleCreate}
+              className="bg-violet-600 hover:bg-violet-700"
+            >
+              Add Assignment
+            </Button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
