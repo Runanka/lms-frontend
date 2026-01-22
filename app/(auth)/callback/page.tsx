@@ -34,8 +34,12 @@ function CallbackHandler() {
       }
 
       try {
+        console.log('Starting token exchange...');
         const tokens = await exchangeCodeForToken(code);
+        console.log('Token exchange successful, fetching user...');
+        
         const { user } = await usersApi.me(tokens.access_token);
+        console.log('User fetched:', user);
 
         setAuth(user, tokens.access_token);
 
@@ -46,7 +50,9 @@ function CallbackHandler() {
         }
       } catch (err: any) {
         console.error('Auth error:', err);
-        setError(err?.message || 'Authentication failed');
+        const errorMessage = err?.message || err?.toString() || 'Unknown error';
+        const errorDetails = err?.cause ? ` (Cause: ${err.cause})` : '';
+        setError(`${errorMessage}${errorDetails}`);
       }
     };
 
@@ -55,10 +61,15 @@ function CallbackHandler() {
 
   if (error) {
     return (
-      <main className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
+      <main className="min-h-screen flex items-center justify-center p-4">
+        <div className="text-center max-w-lg">
           <h1 className="text-2xl font-bold text-red-600">Authentication Error</h1>
-          <p className="text-gray-600 mt-2">{error}</p>
+          <p className="text-gray-600 mt-2 break-words">{error}</p>
+          <div className="mt-4 p-3 bg-gray-100 rounded text-left text-xs text-gray-500 overflow-auto max-h-40">
+            <p><strong>Debug Info:</strong></p>
+            <p>URL: {typeof window !== 'undefined' ? window.location.href : 'N/A'}</p>
+            <p>Code present: {searchParams.get('code') ? 'Yes' : 'No'}</p>
+          </div>
           <a href="/" className="mt-4 inline-block text-blue-600 hover:underline">
             Back to Home
           </a>
