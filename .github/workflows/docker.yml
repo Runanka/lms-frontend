@@ -56,7 +56,7 @@ jobs:
           build-args: |
             NEXT_PUBLIC_API_URL=https://api.skillwise.fun/api
             NEXT_PUBLIC_ZITADEL_AUTHORITY=https://identity.skillwise.fun
-            NEXT_PUBLIC_ZITADEL_CLIENT_ID=${{ secrets.ZITADEL_CLIENT_ID }}
+            NEXT_PUBLIC_ZITADEL_CLIENT_ID=356664536968790022
             NEXT_PUBLIC_APP_URL=https://app.skillwise.fun
           cache-from: type=gha
           cache-to: type=gha,mode=max
