@@ -55,7 +55,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             NEXT_PUBLIC_API_URL=https://api.skillwise.fun/api
-            NEXT_PUBLIC_ZITADEL_AUTHORITY=https://identity.skillwise.fun
+            NEXT_PUBLIC_ZITADEL_ISSUER=https://identity.skillwise.fun
             NEXT_PUBLIC_ZITADEL_CLIENT_ID=356664536968790022
             NEXT_PUBLIC_APP_URL=https://app.skillwise.fun
           cache-from: type=gha
