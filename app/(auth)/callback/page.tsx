@@ -1,12 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { exchangeCodeForToken, parseJwt } from '@/lib/auth';
+import { exchangeCodeForToken } from '@/lib/auth';
 import { useAuthStore } from '@/lib/auth-store';
 import { usersApi } from '@/lib/api';
 
-export default function CallbackPage() {
+function CallbackHandler() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
@@ -30,7 +30,6 @@ export default function CallbackPage() {
 
       try {
         const tokens = await exchangeCodeForToken(code);
-        const payload = parseJwt(tokens.access_token);
         
         // Fetch user from backend (creates if not exists)
         const { user } = await usersApi.me(tokens.access_token);
@@ -73,5 +72,22 @@ export default function CallbackPage() {
         <p className="mt-4 text-gray-600">Authenticating...</p>
       </div>
     </main>
+  );
+}
+
+export default function CallbackPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin h-8 w-8 border-4 border-gray-300 border-t-black rounded-full mx-auto" />
+            <p className="mt-4 text-gray-600">Loading...</p>
+          </div>
+        </main>
+      }
+    >
+      <CallbackHandler />
+    </Suspense>
   );
 }
