@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useState, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { exchangeCodeForToken } from '@/lib/auth';
 import { useAuthStore } from '@/lib/auth-store';
@@ -10,10 +10,15 @@ function CallbackHandler() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
+  const hasRun = useRef(false);
   
   const { setAuth } = useAuthStore();
 
   useEffect(() => {
+    // Prevent running twice (OAuth codes are single-use)
+    if (hasRun.current) return;
+    hasRun.current = true;
+
     const handleCallback = async () => {
       const code = searchParams.get('code');
       const errorParam = searchParams.get('error');
@@ -30,21 +35,18 @@ function CallbackHandler() {
 
       try {
         const tokens = await exchangeCodeForToken(code);
-        
-        // Fetch user from backend (creates if not exists)
         const { user } = await usersApi.me(tokens.access_token);
 
         setAuth(user, tokens.access_token);
 
-        // If no role set, redirect to role selection
         if (!user.role) {
           router.replace('/select-role');
         } else {
           router.replace('/courses');
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error('Auth error:', err);
-        setError('Authentication failed');
+        setError(err?.message || 'Authentication failed');
       }
     };
 
