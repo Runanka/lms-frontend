@@ -23,8 +23,11 @@ WORKDIR /app
 
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/public ./public
 COPY --from=builder /app/node_modules ./node_modules
+
+# Create public directory and copy contents if they exist
+RUN mkdir -p ./public
+COPY --from=builder /app/public/. ./public/
 
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nodejs -u 1001
