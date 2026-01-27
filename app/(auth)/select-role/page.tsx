@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/auth-store';
 import { usersApi } from '@/lib/api';
-import { GraduationCap, Lightbulb } from 'lucide-react';
+import { Briefcase, Lightbulb } from 'lucide-react';
 import type { Role } from '@/types';
 
 export default function SelectRolePage() {
@@ -75,11 +75,11 @@ export default function SelectRolePage() {
               } ${selecting !== null && selecting !== 'student' ? 'opacity-50' : ''}`}
           >
             <div className="w-12 h-12 bg-violet-100 rounded-xl flex items-center justify-center mb-4 group-hover:bg-violet-500 group-hover:text-white transition-colors">
-              <GraduationCap className="w-6 h-6 text-violet-600 group-hover:text-white" />
+              <Briefcase className="w-6 h-6 text-violet-600 group-hover:text-white" />
             </div>
-            <h3 className="text-xl font-semibold mb-2">Student</h3>
+            <h3 className="text-xl font-semibold mb-2">Employee</h3>
             <p className="text-gray-500 text-sm">
-              Learn from expert-created courses and paths. Track your progress and achieve your goals.
+              Learn from expert-created courses and paths. Track your professional growth and achieve your goals.
             </p>
             {selecting === 'student' && (
               <div className="absolute top-4 right-4">
@@ -102,7 +102,7 @@ export default function SelectRolePage() {
             </div>
             <h3 className="text-xl font-semibold mb-2">Coach</h3>
             <p className="text-gray-500 text-sm">
-              Create and publish courses. Build learning paths and help students grow.
+              Create and publish courses. Build learning paths and help employees grow.
             </p>
             {selecting === 'coach' && (
               <div className="absolute top-4 right-4">

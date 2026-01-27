@@ -148,7 +148,7 @@ export default function SubmissionsPage() {
       <div className="mb-8">
         <h1 className="text-3xl font-bold tracking-tight">Student Submissions</h1>
         <p className="text-gray-500 mt-1">
-          Review and grade student assignments
+          Review and grade employee assignments
         </p>
       </div>
 
@@ -158,7 +158,7 @@ export default function SubmissionsPage() {
             <FileText className="w-8 h-8 text-gray-400" />
           </div>
           <h3 className="text-lg font-semibold mb-2">No submissions yet</h3>
-          <p className="text-gray-500">Students haven't submitted any assignments yet.</p>
+          <p className="text-gray-500">Employees haven't submitted any assignments yet.</p>
         </div>
       ) : (
         <div className="space-y-10">

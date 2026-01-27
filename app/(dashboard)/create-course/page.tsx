@@ -242,7 +242,7 @@ export default function CreateCoursePage() {
                 onChange={(e) => setDescription(e.target.value)}
                 rows={3}
                 className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all resize-none"
-                placeholder="What will students learn?"
+                placeholder="What will employees learn?"
               />
             </div>
 

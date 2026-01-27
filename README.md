@@ -4,7 +4,7 @@ A modern Learning Management System frontend built with Next.js 15, featuring a 
 
 ## Features
 
-### For Students
+### For Employees
 - **Browse Courses** - Discover and enroll in courses
 - **Learning Paths** - Follow structured multi-course journeys
 - **Progress Tracking** - Track completion across courses and paths
@@ -16,7 +16,7 @@ A modern Learning Management System frontend built with Next.js 15, featuring a 
 - **Course Creation** - Build courses with modules, resources, and assignments
 - **Path Creation** - Curate collections of your courses into learning paths
 - **Assignment Management** - Create MCQ and subjective assignments
-- **Submission Review** - Grade student submissions
+- **Submission Review** - Grade employee submissions
 
 ## Tech Stack
 
@@ -77,8 +77,8 @@ lms-frontend/
 │   ├── (dashboard)/         # Protected routes
 │   │   ├── courses/         # Course listing & details
 │   │   ├── paths/           # Learning path listing & details
-│   │   ├── my-courses/      # Student's enrolled courses
-│   │   ├── my-paths/        # Student's started paths
+│   │   ├── my-courses/      # Employee's enrolled courses
+│   │   ├── my-paths/        # Employee's started paths
 │   │   ├── learn/[id]/      # Course learning interface
 │   │   ├── create-course/   # Course creation (coaches)
 │   │   ├── create-path/     # Path creation (coaches)
@@ -117,9 +117,9 @@ lms-frontend/
 | `/courses/[id]/edit` | Edit course | Coach (owner) |
 | `/paths` | Browse/manage paths | Authenticated |
 | `/paths/[id]` | Path details | Authenticated |
-| `/my-courses` | Enrolled courses | Student |
-| `/my-paths` | Started paths | Student |
-| `/learn/[id]` | Learning interface | Student (enrolled) |
+| `/my-courses` | Enrolled courses | Student | Employee
+| `/my-paths` | Started paths | Student | Employee
+| `/learn/[id]` | Learning interface | Student (enrolled) | Employee (enrolled)
 | `/create-course` | Create new course | Coach |
 | `/create-path` | Create new path | Coach |
 | `/submissions/[id]` | Review submissions | Coach |
